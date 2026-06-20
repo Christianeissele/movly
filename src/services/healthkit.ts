@@ -19,7 +19,9 @@ const HK_ACTIVITY: Record<number, WorkoutType> = {
 export const initHealthKit = async () => {
   const HK = getHK();
   if (!HK) throw new Error('HealthKit not available');
-  // iOS requests permissions automatically on first query — no manual auth needed
+  await HK.requestAuthorization({
+    toRead: [HR_ID, ENERGY_ID, DIST_RUN, DIST_BIKE, STEPS_ID],
+  });
 };
 
 export const getLatestHeartRate = async (): Promise<number> => {
