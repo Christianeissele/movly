@@ -19,10 +19,7 @@ const HK_ACTIVITY: Record<number, WorkoutType> = {
 export const initHealthKit = async () => {
   const HK = getHK();
   if (!HK) throw new Error('HealthKit not available');
-  await HK.requestAuthorization({
-    toRead:  [HR_ID, ENERGY_ID, DIST_RUN, DIST_BIKE, STEPS_ID],
-    toShare: [],
-  });
+  // iOS requests permissions automatically on first query — no manual auth needed
 };
 
 export const getLatestHeartRate = async (): Promise<number> => {
@@ -66,10 +63,6 @@ export const getWeeklySteps = async (): Promise<number[]> => {
 export const importHealthKitWorkouts = async (): Promise<WorkoutSession[]> => {
   const HK = getHK();
   if (!HK) return [];
-  await HK.requestAuthorization({
-    toRead:  [HR_ID, ENERGY_ID, DIST_RUN, DIST_BIKE, STEPS_ID],
-    toShare: [],
-  });
   const oneYearAgo = new Date(Date.now() - 365 * 24 * 3600 * 1000);
   const samples = await HK.queryWorkoutSamples({ from: oneYearAgo, to: new Date(), ascending: false, limit: 500 });
   return (samples ?? [])
