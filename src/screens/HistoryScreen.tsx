@@ -5,7 +5,6 @@ import {
   ActivityIndicator, Animated,
 } from 'react-native';
 import { SymbolView } from 'expo-symbols';
-import Svg, { Rect, Line, Text as SvgText } from 'react-native-svg';
 import MapView, { Polyline, PROVIDER_DEFAULT } from 'react-native-maps';
 import { WorkoutSession, WorkoutType, HR_ZONE_COLORS } from '../types/workout';
 import { loadWorkoutHistory } from '../services/workoutHistory';
