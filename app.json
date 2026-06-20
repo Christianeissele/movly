@@ -1,13 +1,25 @@
 {
   "expo": {
-    "name": "fitness-tracker",
-    "slug": "fitness-tracker",
+    "name": "Movly",
+    "slug": "movly",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
-    "userInterfaceStyle": "light",
+    "userInterfaceStyle": "dark",
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": false,
+      "bundleIdentifier": "eu.pixelmanufaktur.movly",
+      "infoPlist": {
+        "NSHealthShareUsageDescription": "Diese App liest deine Herzfrequenz, Kalorien und Trainingsdaten aus Apple Health.",
+        "NSHealthUpdateUsageDescription": "Diese App speichert deine Trainingseinheiten in Apple Health.",
+        "NSLocationWhenInUseUsageDescription": "GPS wird für die Routenaufzeichnung während des Trainings benötigt.",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "GPS wird für die Routenaufzeichnung im Hintergrund benötigt.",
+        "UIBackgroundModes": ["location", "fetch", "processing"]
+      },
+      "entitlements": {
+        "com.apple.developer.healthkit": true,
+        "com.apple.developer.healthkit.access": []
+      }
     },
     "android": {
       "adaptiveIcon": {
