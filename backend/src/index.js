@@ -10,7 +10,7 @@ app.get('/', (c) => c.json({ status: 'ok', app: 'movly-api' }));
 
 app.get('/workouts', async (c) => {
   try {
-    const rows = await query('/workouts?order=started_at.desc&limit=100');
+    const rows = await query('/workouts?order=started_at.desc&limit=200');
     return c.json(rows);
   } catch (e) {
     return c.json({ error: e.message }, 500);
@@ -19,20 +19,26 @@ app.get('/workouts', async (c) => {
 
 app.post('/workouts', async (c) => {
   try {
-    const body = await c.req.json();
+    const b = await c.req.json();
     const row = await query('/workouts', {
       method: 'POST',
       headers: { 'Prefer': 'return=representation' },
       body: JSON.stringify({
-        type:       body.type,
-        started_at: body.startTime,
-        ended_at:   body.endTime ?? null,
-        duration:   body.duration   ?? 0,
-        distance:   body.distance   ?? 0,
-        calories:   body.calories   ?? 0,
-        avg_hr:     body.avgHeartRate ?? 0,
-        max_hr:     body.maxHeartRate ?? 0,
-        route:      body.route      ?? [],
+        type:        b.type,
+        started_at:  b.startTime,
+        ended_at:    b.endTime ?? null,
+        duration:    b.duration     ?? 0,
+        moving_time: b.movingTime   ?? b.duration ?? 0,
+        distance:    b.distance     ?? 0,
+        calories:    b.calories     ?? 0,
+        avg_hr:      b.avgHeartRate ?? 0,
+        max_hr:      b.maxHeartRate ?? 0,
+        max_speed:   b.maxSpeed     ?? 0,
+        elev_gain:   b.elevGain     ?? 0,
+        elev_loss:   b.elevLoss     ?? 0,
+        notes:       b.notes        ?? null,
+        feeling:     b.feeling      ?? null,
+        route:       b.route        ?? [],
       }),
     });
     return c.json(Array.isArray(row) ? row[0] : row, 201);
@@ -51,10 +57,6 @@ app.delete('/workouts/:id', async (c) => {
 });
 
 serve({ fetch: app.fetch, port: process.env.PORT ?? 3000 }, async (info) => {
-  console.log(`Movly API running on port ${info.port}`);
-  try {
-    await initDB();
-  } catch (e) {
-    console.error('Supabase init error:', e.message);
-  }
+  console.log(`Movly API on port ${info.port}`);
+  try { await initDB(); } catch (e) { console.error('Supabase init:', e.message); }
 });
