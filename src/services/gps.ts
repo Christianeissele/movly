@@ -4,8 +4,9 @@ import { RoutePoint } from '../types/workout';
 export const requestLocationPermission = async (): Promise<boolean> => {
   const { status } = await Location.requestForegroundPermissionsAsync();
   if (status !== 'granted') return false;
-  const { status: bgStatus } = await Location.requestBackgroundPermissionsAsync();
-  return bgStatus === 'granted';
+  // Background is optional — don't block on it
+  try { await Location.requestBackgroundPermissionsAsync(); } catch {}
+  return true;
 };
 
 export const startLocationTracking = (

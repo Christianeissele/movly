@@ -1,4 +1,4 @@
-export type WorkoutType = 'running' | 'cycling' | 'walking' | 'hiking' | 'other';
+export type WorkoutType = 'running' | 'cycling' | 'swimming' | 'tennis';
 
 export interface WorkoutSession {
   id: string;
@@ -23,9 +23,12 @@ export interface RoutePoint {
 
 export interface LiveMetrics {
   heartRate: number;
+  maxHeartRate: number;
   calories: number;
   distance: number;
-  pace: number; // seconds per km
-  duration: number; // seconds
-  speed: number; // km/h
+  pace: number;       // seconds per km
+  duration: number;   // seconds
+  speed: number;      // km/h current
+  avgSpeed: number;   // km/h average
+  altitude: number;   // meters
 }

@@ -1,28 +1,26 @@
-import postgres from 'postgres';
+const SUPABASE_URL = process.env.SUPABASE_URL;
+const SUPABASE_KEY = process.env.SUPABASE_KEY;
 
-const sql = postgres(process.env.DATABASE_URL, {
-  ssl: { rejectUnauthorized: false },
-  max: 5,
-});
-
-export const initDB = async () => {
-  await sql`
-    CREATE TABLE IF NOT EXISTS workouts (
-      id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-      user_id     TEXT NOT NULL DEFAULT 'default',
-      type        TEXT NOT NULL,
-      started_at  TIMESTAMPTZ NOT NULL,
-      ended_at    TIMESTAMPTZ,
-      duration    INTEGER NOT NULL DEFAULT 0,
-      distance    REAL NOT NULL DEFAULT 0,
-      calories    REAL NOT NULL DEFAULT 0,
-      avg_hr      INTEGER NOT NULL DEFAULT 0,
-      max_hr      INTEGER NOT NULL DEFAULT 0,
-      route       JSONB NOT NULL DEFAULT '[]',
-      created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
-    )
-  `;
-  console.log('DB ready');
+const headers = {
+  'apikey':        SUPABASE_KEY,
+  'Authorization': `Bearer ${SUPABASE_KEY}`,
+  'Content-Type':  'application/json',
 };
 
-export default sql;
+export const query = async (path, options = {}) => {
+  const res = await fetch(`${SUPABASE_URL}/rest/v1${path}`, {
+    ...options,
+    headers: { ...headers, ...options.headers },
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`Supabase ${res.status}: ${text}`);
+  }
+  return res.status === 204 ? null : res.json();
+};
+
+export const initDB = async () => {
+  // Table already created via SQL Editor — just verify connectivity
+  await query('/workouts?limit=1');
+  console.log('Supabase connected');
+};
