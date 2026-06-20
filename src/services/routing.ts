@@ -40,9 +40,12 @@ export const fetchRoute = async (
   if (json.code !== 'Ok' || !json.routes?.[0]) throw new Error('Keine Route gefunden');
 
   const r = json.routes[0];
+  // OSRM cycling duration is unrealistic (~66 km/h) — use realistic avg speeds
+  const avgSpeedMs = profile === 'cycling' ? (18 / 3.6) : (4.5 / 3.6);
+  const realisticDuration = r.distance / avgSpeedMs;
   return {
     distance: r.distance,
-    duration: r.duration,
+    duration: realisticDuration,
     coords: (r.geometry.coordinates as [number, number][]).map(([lon, lat]) => ({ latitude: lat, longitude: lon })),
   };
 };

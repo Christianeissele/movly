@@ -21,7 +21,6 @@ export const initHealthKit = async () => {
   if (!HK) throw new Error('HealthKit not available');
   await HK.requestAuthorization(
     [HR_ID, ENERGY_ID, DIST_RUN, DIST_BIKE, STEPS_ID, WORKOUT_ID],
-    [ENERGY_ID],
   );
 };
 
@@ -67,7 +66,7 @@ export const importHealthKitWorkouts = async (): Promise<WorkoutSession[]> => {
   const HK = getHK();
   if (!HK) return [];
   await HK.requestAuthorization(
-    [HR_ID, ENERGY_ID, DIST_RUN, DIST_BIKE, STEPS_ID, WORKOUT_ID], [],
+    [HR_ID, ENERGY_ID, DIST_RUN, DIST_BIKE, STEPS_ID, WORKOUT_ID],
   );
   const oneYearAgo = new Date(Date.now() - 365 * 24 * 3600 * 1000);
   const samples = await HK.queryWorkoutSamples({ from: oneYearAgo, to: new Date(), ascending: false, limit: 500 });
