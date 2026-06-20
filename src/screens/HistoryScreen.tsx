@@ -8,7 +8,8 @@ import { SymbolView } from 'expo-symbols';
 import MapView, { Polyline, PROVIDER_DEFAULT } from 'react-native-maps';
 import { WorkoutSession, WorkoutType } from '../types/workout';
 import { loadWorkoutHistory } from '../services/workoutHistory';
-import { getHeartRateSamples } from '../services/healthkit';
+import { getHeartRateSamples, importHealthKitWorkouts } from '../services/healthkit';
+import { saveWorkout, fetchWorkouts } from '../services/api';
 import { HRChart } from '../components/HRChart';
 
 const { width: W } = Dimensions.get('window');
@@ -37,10 +38,43 @@ export const HistoryScreen = () => {
   const [selected, setSelected] = useState<WorkoutSession | null>(null);
   const [hrData, setHrData] = useState<number[]>([]);
   const [loadingHR, setLoadingHR] = useState(false);
+  const [importing, setImporting] = useState(false);
+  const [importResult, setImportResult] = useState<string | null>(null);
 
-  useEffect(() => {
-    loadWorkoutHistory().then(data => { setWorkouts(data); setLoading(false); });
-  }, []);
+  const reload = () => loadWorkoutHistory().then(data => { setWorkouts(data); setLoading(false); });
+
+  useEffect(() => { reload(); }, []);
+
+  const handleImport = async () => {
+    setImporting(true);
+    setImportResult(null);
+    try {
+      const hkWorkouts = await importHealthKitWorkouts();
+      if (hkWorkouts.length === 0) {
+        setImportResult('Keine Trainings in Apple Health gefunden.');
+        return;
+      }
+      // Fetch existing to deduplicate by startTime (±2s)
+      const existing = await fetchWorkouts();
+      const existingTimes = existing.map(w => w.startTime.getTime());
+      const toSave = hkWorkouts.filter(w =>
+        !existingTimes.some(t => Math.abs(t - w.startTime.getTime()) < 2000)
+      );
+      if (toSave.length === 0) {
+        setImportResult('Alles bereits importiert — nichts Neues gefunden.');
+        return;
+      }
+      for (const w of toSave) {
+        await saveWorkout(w);
+      }
+      setImportResult(`${toSave.length} Training${toSave.length !== 1 ? 's' : ''} importiert`);
+      await reload();
+    } catch (e: any) {
+      setImportResult(`Fehler: ${e.message}`);
+    } finally {
+      setImporting(false);
+    }
+  };
 
   const openDetail = async (w: WorkoutSession) => {
     setSelected(w);
@@ -63,7 +97,19 @@ export const HistoryScreen = () => {
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Aktivitäten</Text>
+        <TouchableOpacity onPress={handleImport} disabled={importing} style={styles.importBtn}>
+          {importing
+            ? <ActivityIndicator color="#0A84FF" size="small" />
+            : <SymbolView name="square.and.arrow.down" size={22} tintColor="#0A84FF" />
+          }
+        </TouchableOpacity>
       </View>
+      {importResult && (
+        <TouchableOpacity onPress={() => setImportResult(null)} style={styles.importBanner}>
+          <Text style={styles.importBannerText}>{importResult}</Text>
+          <SymbolView name="xmark" size={12} tintColor="#8E8E93" />
+        </TouchableOpacity>
+      )}
 
       {loading ? (
         <ActivityIndicator style={{ flex: 1 }} color="#FF3B30" />
@@ -254,8 +300,11 @@ const StatCard = ({ symbol, label, value, unit, color }: any) => (
 
 const styles = StyleSheet.create({
   container:      { flex: 1, backgroundColor: '#000' },
-  header:         { paddingHorizontal: 20, paddingTop: 8, paddingBottom: 4 },
+  header:         { paddingHorizontal: 20, paddingTop: 8, paddingBottom: 4, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   headerTitle:    { color: '#FFF', fontSize: 34, fontWeight: '700', letterSpacing: 0.37 },
+  importBtn:      { width: 36, height: 36, alignItems: 'center', justifyContent: 'center' },
+  importBanner:   { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginHorizontal: 16, marginBottom: 8, backgroundColor: '#1C1C1E', borderRadius: 12, paddingHorizontal: 14, paddingVertical: 10 },
+  importBannerText: { color: '#EBEBF5', fontSize: 13, flex: 1 },
   list:           { paddingBottom: 32 },
   separator:      { height: StyleSheet.hairlineWidth, backgroundColor: '#2C2C2E', marginLeft: 76 },
   summaryCard:    { margin: 16, backgroundColor: '#1C1C1E', borderRadius: 20, padding: 18 },
