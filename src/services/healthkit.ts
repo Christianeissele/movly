@@ -13,15 +13,20 @@ const STEPS_ID  = 'HKQuantityTypeIdentifierStepCount';
 // HKWorkoutTypeIdentifier is NOT passed to requestAuthorization — it crashes the native module
 
 const HK_ACTIVITY: Record<number, WorkoutType> = {
-  37: 'running', 13: 'cycling', 46: 'swimming', 62: 'tennis', 63: 'tennis',
+  13: 'cycling',
+  37: 'running',
+  46: 'swimming',
+  47: 'tennis',  // table tennis
+  48: 'tennis',  // tennis
+  52: 'running', // walking → running
 };
 
 export const initHealthKit = async () => {
   const HK = getHK();
   if (!HK) throw new Error('HealthKit not available');
-  await HK.requestAuthorization({
-    toRead: [HR_ID, ENERGY_ID, DIST_RUN, DIST_BIKE, STEPS_ID],
-  });
+  // Pass both toRead and toShare explicitly — Nitro bridge may silently drop undefined fields.
+  // CoreModule.swift has a fallback that adds hardcoded types if the bridge produces empty sets.
+  await HK.requestAuthorization({ toRead: [HR_ID, ENERGY_ID, DIST_RUN, DIST_BIKE, STEPS_ID, 'HKWorkoutTypeIdentifier'], toShare: [] });
 };
 
 export const getLatestHeartRate = async (): Promise<number> => {
@@ -65,8 +70,13 @@ export const getWeeklySteps = async (): Promise<number[]> => {
 export const importHealthKitWorkouts = async (): Promise<WorkoutSession[]> => {
   const HK = getHK();
   if (!HK) return [];
-  const oneYearAgo = new Date(Date.now() - 365 * 24 * 3600 * 1000);
-  const samples = await HK.queryWorkoutSamples({ from: oneYearAgo, to: new Date(), ascending: false, limit: 500 });
+  const oneYearAgo = new Date(Date.now() - 3 * 365 * 24 * 3600 * 1000);
+  let samples: any[];
+  try {
+    samples = await HK.queryWorkoutSamples({ from: oneYearAgo, to: new Date(), ascending: false, limit: 500 });
+  } catch (err: any) {
+    throw err;
+  }
   return (samples ?? [])
     .filter((s: any) => HK_ACTIVITY[s.workoutActivityType])
     .map((s: any) => ({
@@ -76,7 +86,7 @@ export const importHealthKitWorkouts = async (): Promise<WorkoutSession[]> => {
       endTime:   new Date(s.endDate),
       duration:  s.duration ?? 0,
       movingTime: s.duration ?? 0,
-      distance:  (s.totalDistance?.quantity ?? 0) * 1000,
+      distance:  s.totalDistance?.quantity ?? 0,
       calories:  s.totalEnergyBurned?.quantity ?? 0,
       avgHeartRate: 0, maxHeartRate: 0, maxSpeed: 0,
       elevGain: 0, elevLoss: 0, route: [],
